@@ -3,12 +3,21 @@ require 'active_record/relation'
 
 module Randumb
   
-    #  https://github.com/rails/rails/blob/master/activerecord/lib/active_record/relation/query_methods.rb
   module ActiveRecord
     
     module Relation
       
-      def random(max_items = nil)
+      def random(max_items = nil, options={})
+        if (!max_items && options[:method] != :select) || options[:method] == :offset
+          random_using_offset(max_items)
+        else
+          random_using_ids(max_items)
+        end
+      end
+
+      private
+
+      def random_using_ids(max_items = nil)
         # return only the first record if method was called without parameters
         return_first_record = max_items.nil?
         max_items ||= 1
@@ -37,12 +46,23 @@ module Randumb
         end
 
         records = klass.select(original_selects).includes(original_includes).find_all_by_id(ids.values)
-                
-        if return_first_record
-          records.first
-        else
-          records
+
+        return_first_record ? records.first : records
+      end
+
+      def random_using_offset(max_results=nil)
+        records = []
+        taken = Set.new
+        if (max = count) > 0
+          while (size = records.size) < (max_results || 1) && size < max
+            offset = rand(max)
+            unless taken.include?(offset)
+              taken.add(offset)
+              records << find(:first, :offset => offset)
+            end
+          end
         end
+        max_results ? records : records.first
       end
 
     end # Relation
@@ -50,12 +70,11 @@ module Randumb
     module Base
       
       # Class method
-      def random(max_items = nil)
-        relation.random(max_items)
+      def random(max_items=nil, options={})
+        relation.random(max_items, options)
       end
       
     end # Base
-    
     
   end # ActiveRecord
   
