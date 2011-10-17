@@ -26,6 +26,12 @@ artists = Artist.random(3)  ## returns an array
 artists = Artist.random(1)  ## returns an array
 ```
 
+``` ruby
+## you can use offset method for generating a random record for possibly improved performance on large datasets
+artist = Artist.random(3, :method => :offset)
+```
+
+
 ## Install 
 
 ``` ruby
